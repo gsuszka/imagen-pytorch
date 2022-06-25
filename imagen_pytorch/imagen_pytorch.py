@@ -1176,7 +1176,7 @@ class Unet(nn.Module):
             transformer_block_klass = TransformerBlock if layer_attn else (LinearAttentionTransformerBlock if use_linear_attn else nn.Identity)
 
             self.downs.append(nn.ModuleList([
-                downsample_klass(dim_in) if memory_efficient else None,
+                downsample_klass(dim_in) if memory_efficient and not is_last else None,
                 ResnetBlock(dim_in, dim_out, cond_dim = layer_cond_dim, linear_attn = layer_use_linear_cross_attn, time_cond_dim = time_cond_dim, groups = groups, skip_connection_scale = skip_connect_scale),
                 nn.ModuleList([ResnetBlock(dim_out, dim_out, time_cond_dim = time_cond_dim, groups = groups, use_gca = use_global_context_attn, skip_connection_scale = skip_connect_scale) for _ in range(layer_num_resnet_blocks)]),
                 transformer_block_klass(dim = dim_out, heads = attn_heads, dim_head = attn_dim_head, ff_mult = ff_mult),
@@ -1190,6 +1190,7 @@ class Unet(nn.Module):
         self.mid_block2 = ResnetBlock(mid_dim, mid_dim, cond_dim = cond_dim, time_cond_dim = time_cond_dim, groups = resnet_groups[-1])
 
         for ind, ((dim_in, dim_out), layer_num_resnet_blocks, groups, layer_attn, layer_cross_attn) in enumerate(zip(reversed(in_out), *reversed_layer_params)):
+            is_first = ind == 0
             is_last = ind == (len(in_out) - 1)
             layer_use_linear_cross_attn = not layer_cross_attn and use_linear_cross_attn
             layer_cond_dim = cond_dim if layer_cross_attn or layer_use_linear_cross_attn else None
@@ -1199,7 +1200,7 @@ class Unet(nn.Module):
                 ResnetBlock(dim_out * 2, dim_in, cond_dim = layer_cond_dim, linear_attn = layer_use_linear_cross_attn, time_cond_dim = time_cond_dim, groups = groups, skip_connection_scale = skip_connect_scale),
                 nn.ModuleList([ResnetBlock(dim_in, dim_in, time_cond_dim = time_cond_dim, groups = groups, skip_connection_scale = skip_connect_scale, use_gca = use_global_context_attn) for _ in range(layer_num_resnet_blocks)]),
                 transformer_block_klass(dim = dim_in, heads = attn_heads, dim_head = attn_dim_head, ff_mult = ff_mult),
-                Upsample(dim_in) if not is_last or memory_efficient else nn.Identity()
+                Upsample(dim_in) if (not memory_efficient and not is_last) or (memory_efficient and not is_first) else nn.Identity()
             ]))
 
         # whether to do a final residual from initial conv to the final resnet block out
