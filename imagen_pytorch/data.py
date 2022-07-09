@@ -1,3 +1,4 @@
+from asyncio.log import logger
 from pathlib import Path
 from functools import partial
 
@@ -5,6 +6,8 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms as T, utils
+from typing import Optional
+
 
 from PIL import Image
 
@@ -22,6 +25,26 @@ def convert_image_to(img_type, image):
     if image.mode != img_type:
         return image.convert(img_type)
     return image
+
+def pil_loader(
+    path: Path | str, 
+    ignore_exception: bool = False, 
+    remove_on_fail: bool = False,
+) -> Optional[Image.Image]:
+    logger.debug('Loading image from "%s"', path)
+
+    try:
+        with Image.open(path) as img:
+            return img.convert("RGB")
+    except Exception as e:
+        logger.error('Couldn\'t load image from "%s"', path)
+
+        if remove_on_fail:
+            logger.warning('Removing "%s"', path)
+            Path(path).unlink()
+
+        if not ignore_exception:
+            raise e
 
 # dataset and dataloader
 
@@ -53,7 +76,7 @@ class Dataset(Dataset):
 
     def __getitem__(self, index):
         path = self.paths[index]
-        img = Image.open(path)
+        img = pil_loader(path)
         return self.transform(img)
 
 def get_images_dataloader(

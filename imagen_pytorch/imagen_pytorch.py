@@ -1,5 +1,4 @@
 import math
-import copy
 from typing import List
 from tqdm import tqdm
 from functools import partial, wraps
@@ -17,9 +16,12 @@ import torchvision.transforms as T
 import kornia.augmentation as K
 
 from einops import rearrange, repeat, reduce
-from einops.layers.torch import Rearrange, Reduce
+from einops.layers.torch import Rearrange
 from einops_exts import rearrange_many, repeat_many, check_shape
 from einops_exts.torch import EinopsToAndFrom
+
+from resize_right import resize
+from imagen_pytorch.gui import GUI
 
 from imagen_pytorch.t5 import t5_encode_text, get_encoded_dim, DEFAULT_T5_NAME
 
@@ -1995,7 +1997,8 @@ class Imagen(nn.Module):
         cond_scale = 1,
         pred_objective = 'noise',
         dynamic_threshold = True,
-        use_tqdm = True
+        use_tqdm = True,
+        gui: GUI | None = None,
     ):
         device = self.device
 
@@ -2018,6 +2021,9 @@ class Imagen(nn.Module):
         timesteps = noise_scheduler.get_sampling_timesteps(batch, device = device)
 
         for times, times_next in tqdm(timesteps, desc = 'sampling loop time step', total = len(timesteps), disable = not use_tqdm):
+            if gui and gui.pbar:
+                gui.pbar.progress(min(100, times * 100 // timesteps))
+
             is_last_timestep = times_next == 0
 
             for r in reversed(range(resample_times)):
@@ -2043,6 +2049,10 @@ class Imagen(nn.Module):
                     dynamic_threshold = dynamic_threshold
                 )
 
+                if gui and gui.canvases:
+                    for _img, canvas in zip(img,gui.canvases):
+                        canvas.image(T.ToPILImage()(_img), use_column_width=True)
+
                 if has_inpainting and not (is_last_resample_step or torch.all(is_last_timestep)):
                     renoised_img = noise_scheduler.q_sample_from_to(img, times_next, times)
 
@@ -2051,16 +2061,6 @@ class Imagen(nn.Module):
                         img,
                         renoised_img
                     )
-
-        img.clamp_(-1., 1.)
-
-        # final inpainting
-
-        if has_inpainting:
-            img = img * ~inpaint_masks + inpaint_images * inpaint_masks
-
-        unnormalize_img = self.unnormalize_img(img)
-        return unnormalize_img
 
     @torch.no_grad()
     @eval_decorator
@@ -2080,7 +2080,8 @@ class Imagen(nn.Module):
         return_all_unet_outputs = False,
         return_pil_images = False,
         device = None,
-        use_tqdm = True
+        use_tqdm = True,
+        gui: GUI | None = None,
     ):
         device = default(device, self.device)
         self.reset_unets_all_one_device(device = device)
@@ -2146,7 +2147,8 @@ class Imagen(nn.Module):
                     noise_scheduler = noise_scheduler,
                     pred_objective = pred_objective,
                     dynamic_threshold = dynamic_threshold,
-                    use_tqdm = use_tqdm
+                    use_tqdm = use_tqdm,
+                    gui = gui,
                 )
 
                 outputs.append(img)

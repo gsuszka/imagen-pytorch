@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, einsum
 from torch.cuda.amp import autocast
+from torch import nn
 import torchvision.transforms as T
 
 import kornia.augmentation as K
@@ -27,7 +28,6 @@ from imagen_pytorch.imagen_pytorch import (
     cast_uint8_images_to_float,
     eval_decorator,
     check_shape,
-    pad_tuple_to_length,
     resize_image_to,
     right_pad_dims_to,
     module_device,

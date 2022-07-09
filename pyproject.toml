@@ -1,0 +1,52 @@
+[tool.poetry]
+authors = ["Phil Wang <lucidrains@gmail.com>"]
+classifiers = [
+  'Development Status :: 4 - Beta',
+  'Intended Audience :: Developers',
+  'Topic :: Scientific/Engineering :: Artificial Intelligence',
+  'License :: OSI Approved :: MIT License',
+  'Programming Language :: Python :: 3.6',
+]
+
+description = "Imagen - unprecedented photorealism × deep level of language understanding"
+keywords = [
+  'artificial intelligence',
+  'deep learning',
+  'transformers',
+  'text-to-image',
+  'denoising-diffusion',
+]
+license = "MIT"
+name = "imagen-pytorch"
+urls = {original = 'https://github.com/lucidrains/imagen-pytorch', fork = 'https://github.com/gsuszka/imagen-pytorch'}
+version = "0.16.3"
+
+[tool.poetry.dependencies]
+Pillow = "^9.1.1"
+click = "^8.1.3"
+einops = ">=0.4"
+einops-exts = "^0.0.3"
+ema-pytorch = ">=0.0.3"
+numpy = "^1.23.0"
+packaging = "^21.3"
+pydantic = "^1.9.1"
+python = ">=3.9,<4.0"
+pytorch-lightning = "^1.6.4"
+pytorch-warmup = "^0.1.0"
+resize-right = "^0.0.2"
+sentencepiece = "^0.1.96"
+streamlit = {version = "^1.10.0", optional = true, allow-prereleases = true}
+torch = ">=1.6"
+torchvision = "^0.12.0"
+transformers = "^4.20.1"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.extras]
+streamlit = [
+  "streamlit",
+]
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
